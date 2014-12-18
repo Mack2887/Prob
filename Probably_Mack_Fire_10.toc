@@ -1,0 +1,6 @@
+## Interface: 50400
+## Title: Probably - Mack Fire 1.0
+## Notes: ProbablyEngine Custom Fire Mage
+## Dependencies: Probably
+
+rotation.lua
