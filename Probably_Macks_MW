@@ -1,0 +1,140 @@
+--A MISTWEAVER rotation by Mack
+
+ProbablyEngine.library.register('coreHealing', {
+  needsHealing = function(percent, count)
+    return ProbablyEngine.raid.needsHealing(tonumber(percent)) >= count
+  end,
+  needsDispelled = function(spell)
+    for unit,_ in pairs(ProbablyEngine.raid.roster) do
+      if UnitDebuff(unit, spell) then
+        ProbablyEngine.dsl.parsedTarget = unit
+        return true
+      end
+    end
+  end,
+})
+
+ProbablyEngine.rotation.register_custom(270, "MacksMW v1", {
+
+  --buffs/pause
+--{ "pause", "player.buff(Divine Hymn)" }, --Pause
+--{ "pause", "player.buff(Hymn of Hope)" }, --Pause
+{ "115921", "!player.buffs.stats" }, --stats
+
+--SURVIVAL
+{ "!115203", { 
+    "player.health <= 35" 
+  }, "Player" },--fortifying brew
+{ "!5512", "player.health <= 50" },  --healthstone
+
+--CDs
+{ "!115310", "modifier.lalt" },  --Revival
+{"115313", "modifier.rcontrol", "ground" }, --statue
+--{"!88685", "modifier.lshift"},  --Holy Word: Sanctuary
+
+
+--Tier 2 CD's
+
+  { "123986", "modifier.lcontrol", "player" },  --chi burst
+  { "124081", "modifier.lcontrol", "lowest" }, --zen shpere
+  { "115098", "modifier.lcontrol", "lowest" }, --chi wave
+
+--Expel Harm on CD if not channeling
+ { "Expel Harm", {"lowest.health <= 100","player.chi < 4"}, "lowest" }, 
+
+--Dispells
+{"!Detox", {
+    "!modifier.last",
+    "player.mana > 10",
+    "player.spell(Detox).casted < 1",
+    "@coreHealing.needsDispelled('Corrupted Blood')"
+  }, nil },
+
+--!!!!!!!!!!!!!!!    JADE SERPENT STANCE      !!!!!!!!!!!!!!!!!
+{{
+ --ReM @3 stacks
+{ "!Renewing Mist", { "lowest.buff(119611).duration <= 2", "player.spell(Renewing Mist).charges = 3" , "player.chi < 4" } , "lowest" }, 
+--Need mana Emergency
+{ "!115294", { "player.mana < 8", "player.buff(115867).count >= 2", "!player.moving"},}, -- mana tea
+
+--Tank emergency Healing
+{ "!115175", { "tank.health <= 18", "!player.moving", "!modifier.last"}, "tank" }, -- Soothing Mist
+{ "116680", "tank.health <= 18" , "player" }, -- TFT
+{ "124682", { "player.casting(Soothing Mist)", "tank.health <= 18", "player.chi >= 3" }, "tank" }, -- EnM
+{ "116694", { "player.casting(Soothing Mist)", "tank.health <= 18" }, "tank" }, -- Surging Mist
+
+--Emergency Healing
+{ "!115175", { "lowest.health <= 15", "!player.moving", "!modifier.last" }, "lowest" }, -- Soothing Mist
+{ "116680", "lowest.health <= 15" , "player" }, -- TFT
+{ "124682", { "player.casting(Soothing Mist)", "lowest.health <= 15", "player.chi >= 3" }, "lowest" }, -- EnM
+{ "116694", { "player.casting(Soothing Mist)", "lowest.health <= 15" }, "lowest" }, -- Surging Mist
+
+--MANA
+{ "115294", { "player.mana < 75", "player.buff(115867).count >= 2", "!player.moving", "!@coreHealing.needsHealing(50, 5)"},}, -- mana tea
+
+
+--Brackenspore
+
+{'!Soothing Mist', {'Living Mushroom.Exists', 'Living Mushroom.health < 100'} ,'Living Mushroom'},
+{'124682', {'Living Mushroom.Exists', 'Living Mushroom.health < 100', 'player.chi >= 3'} ,'Living Mushroom'},
+{'116694', {'Living Mushroom.Exists', 'Living Mushroom.health < 100'} ,'Living Mushroom'},
+{'!Soothing Mist', {'Rejuvenating Mushroom.Exists', 'Rejuvenating Mushroom.health < 100'}, 'Rejuvenating Mushroom'},
+{'124682', {'Rejuvenating Mushroom.Exists', 'Rejuvenating Mushroom.health < 100', 'player.chi >= 3'}, 'Rejuvenating Mushroom'},
+{'116694', {'Rejuvenating Mushroom.Exists', 'Rejuvenating Mushroom.health < 100' }, 'Rejuvenating Mushroom'},
+
+--!!!!  AoE If multitarget is enabled. ReM/Uplift healing  !!!!
+{{
+  
+{ "!Renewing Mist", { "lowest.buff(119611).duration <= 4", "player.spell(Renewing Mist).charges > 1" , "player.chi < 4"}, "lowest" }, --ReM 
+
+{ "!Uplift", { "@coreHealing.needsHealing(90, 6)","!player.moving",  "player.chi >= 2" }, "lowest" }, --Uplift
+{ "!Renewing Mist", { "lowest.buff(119611).duration <= 5", "player.chi < 2", "@coreHealing.needsHealing(70, 6)" }, "lowest" }, --ReM Need Chi
+
+}, "modifier.multitarget"},
+
+
+
+--Lowest if below 60% (tank included), tank if below 80%, anyone
+{ "115175", {"lowest.health <= 60","!player.moving"}, "lowest" }, -- Soothing Mist
+{ "124682", { "player.casting(Soothing Mist)", "lowest.health <= 75", "player.chi > 2" }, "lowest" }, -- EnM
+{ "116694", { "player.casting(Soothing Mist)", "lowest.health <= 50" }, "lowest" }, -- Surging Mist
+
+{ "115175", {"tank.health <= 80","!player.moving"}, "tank" }, -- Soothing Mist
+{ "124682", { "player.casting(Soothing Mist)", "tank.health <= 80", "player.chi > 2" }, "tank" }, -- EnM
+{ "116694", { "player.casting(Soothing Mist)", "tank.health <= 60" }, "tank" }, -- Surging Mist
+
+{ "115175", {"lowest.health <= 100","!player.moving"}, "lowest" }, -- Soothing Mist
+
+
+
+}, "player.stance = 1" },
+
+
+
+--!!!!!!!!!!!!!!!         CRANE STANCE DPS          !!!!!!!!!!!!!!!!!!!!!!
+
+
+
+{{
+ 
+
+{ "Surging Mist", "player.buff(Vital Mists).count = 5" },
+{"Tiger Palm", {"player.buff(Vital Mists.count = 4", "player.chi > 0" }},
+{ "Rising Sun Kick", {"target.debuff(130320).duration < 5", "player.chi > 1"} },
+{"Blackout Kick", {"player.buff(127722).duration < 5", "player.chi > 1" }},
+{"Tiger Palm", {"player.buff(125359).duration < 5", "player.chi > 0" }},
+{"Blackout Kick",  "player.chi > 1" },
+{"Jab"}, 
+
+
+
+
+}, "player.stance = 2"},
+
+
+},{
+--out of combat
+{ "115921", "!player.buffs.stats" }, --stats
+},function()
+
+end)
